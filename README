@@ -1,1 +1,61 @@
-...
+This is simple PHP package to work with CouchDB. It uses curl library to communicate with CouchDB web server, json_decode/encode functions to work with data and memcached to store ETags and cache data.
+
+The package consists of 2 files:
+1. couchdb.php - CouchDB communication class;
+2. memcache.php - extended Memcache class.
+
+You'll need:
+1. php5.3 of higher;
+2. working memcached server with php-memcache module
+3. php-curl module, json_* functions enabled
+
+Attention:
+Both classed must use the same namespace. CouchDb class can generate unique 40-character-length ids for new documents. Constants can be changed in both couchdb.php and memcache.php classes.
+
+FAQ:
+Q: Why sould i use extended memcache class?
+A: Couchdb-php caches response data in memcached with long-character cache keys, which consists of database name, URL part and ETags. Ofter its length is more than memcached can afford (250 characters) and extended memcache class solves this problem.
+
+Q: How can i set user and password to connect with CouchDB server?
+A: You can uncomment COUCHDB_USER and COUCHDB_PASS constants in couchdb.php class and specify them.
+
+############################################################################
+############################################################################
+
+Available methods:
+	Couchdb->get(databasename, url) to fetch views/document
+		$docId = '.....';
+		$couchdbObj->get( $dbName, $docId );
+
+	Couchdb->insert(databasename, document) to insert data
+		$doc = new \StdClass;
+		$doc->_id = $couchdbObj->uniqid();
+		$doc->sampledata = 'some data';
+		$couchdbObj->insert( $dbName, $doc );
+
+	Couchdb->update(databasename, id, document) to update data
+		$doc->newdata = 'some data';
+		$couchdbObj->update( $dbName, $doc->_id, $doc );
+
+	Couchdb->delete(databasename, id, revision) to delete data
+		$couchdbObj->delete( $dbName, $doc->_id, $doc->_rev );
+
+	Couchdb->uniqid() to generate unique identifier
+		$doc = new \StdClass;
+		$doc->_id = $couchdbObj->uniqid();
+		$doc->sampledata = 'great stuff';
+
+	Couchdb->encode(data) to properly encode url parameters:
+		$key = array( 'project', 2, $url );
+		$designDocUrl = '_design/list/_view/sample?key=' . $couchdbObj->encode( $key );
+		$result = $couchdbObj->get( $dbName, $designDocUrl );
+
+Example:
+Create database "testing" in Futon and run example.php
+
+############################################################################
+############################################################################
+
+CouchDB is an open source document-oriented database written in the Erlang programming language. It borrows from NoSQL and is designed for local replication and to scale horizontally across a wide range of devices.
+Memcached is a general-purpose distributed memory caching system, which is often used to speed up dynamic database-driven websites by caching data and objects in RAM to reduce the number of times an external data source (such as a database or API) must be read.
+
