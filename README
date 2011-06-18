@@ -1,5 +1,5 @@
 This is simple PHP package to work with CouchDB. It uses curl library to communicate with CouchDB web server, json_decode/encode functions to work with data and memcached to store ETags and cache data.
-This package works here: http://allcafe.ru, Author: Dmitry Sorin
+This package works here: http://allcafe.ru, author: Dmitry Sorin
 
 The package consists of 2 files:
 1. couchdb.php - CouchDB communication class;
