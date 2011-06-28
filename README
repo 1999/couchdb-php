@@ -1,12 +1,12 @@
 This is simple PHP package to work with CouchDB. It uses curl library to communicate with CouchDB web server, json_decode/encode functions to work with data and memcached to store ETags and cache data.
-This package works here: http://allcafe.ru, author: Dmitry Sorin
+This package works here: http://allcafe.ru, package author: Dmitry Sorin
 
 The package consists of 2 files:
 1. couchdb.php - CouchDB communication class;
 2. memcache.php - extended Memcache class.
 
 You'll need:
-1. php5.3 of higher;
+1. php5.3 or higher;
 2. working memcached server with php-memcache module
 3. php-curl module, json_* functions enabled
 
@@ -14,8 +14,8 @@ Attention:
 Both classed must use the same namespace. CouchDb class can generate unique 40-character-length ids for new documents. Constants can be changed in both couchdb.php and memcache.php classes.
 
 FAQ:
-Q: Why sould i use extended memcache class?
-A: Couchdb-php caches response data in memcached with long-character cache keys, which consists of database name, URL part and ETags. Ofter its length is more than memcached can afford (250 characters) and extended memcache class solves this problem.
+Q: Why should i use extended memcache class?
+A: Couchdb-php caches response data in memcached with long-character cache keys, which consists of database name, URL part and ETags. Often its length is more than memcached can afford (250 characters) and extended memcache class solves this problem.
 
 Q: How can i set user and password to connect with CouchDB server?
 A: You can uncomment COUCHDB_USER and COUCHDB_PASS constants in couchdb.php class and specify them.
@@ -24,6 +24,7 @@ A: You can uncomment COUCHDB_USER and COUCHDB_PASS constants in couchdb.php clas
 ############################################################################
 
 Available methods:
+
 	Couchdb->get(databasename, url) to fetch views/document
 		$docId = '.....';
 		$couchdbObj->get( $dbName, $docId );
