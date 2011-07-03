@@ -3,6 +3,7 @@ This package works here: http://allcafe.ru, package author: Dmitry Sorin
 
 The package consists of 2 files:
 1. couchdb.php - CouchDB communication class;
+2. couchdb2.php - CouchDB communication class (another implementation for faster work);
 2. memcache.php - extended Memcache class.
 
 You'll need:
@@ -12,6 +13,10 @@ You'll need:
 
 Attention:
 Both classed must use the same namespace. CouchDb class can generate unique 40-character-length ids for new documents. Constants can be changed in both couchdb.php and memcache.php classes.
+
+Difference between couchdb.php and couchdb2.php
+Both files implement CouchDb class which talks to CouchDB server. Couchdb2.php file takes into consideration the fact that documents' ETags do not change when other document in the same database is changed, only views' ETags do. Couchdb.php "flushes" all documents' and views' ETags after updating any document in database.
+The advantage of using couchdb2.php is: it may perform less queries to CouchDB server than couchdb.php, especially when you fetch documents. The disadvantage is: after updating the document from Futon (or else) you should manually drop the data with "couchdata:database_name:document_id" from Memcached server.
 
 FAQ:
 Q: Why should i use extended memcache class?
