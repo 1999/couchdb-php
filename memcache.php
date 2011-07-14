@@ -7,6 +7,7 @@ define( MEMCACHED_PORT, 11211 );
 
 class Memcache extends \Memcache {
 	public function __construct() {
+		// TODO exceptions
 		if ( false === @$this->connect( MEMCACHED_HOST, MEMCACHED_PORT ) ) {
 			exit( 'could not connect to memcached server' );
 		}
