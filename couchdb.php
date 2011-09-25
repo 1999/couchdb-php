@@ -32,7 +32,7 @@ class Couchdb {
 	 * keys encoding
 	 */
 	public function encode( $key ) {
-		return str_replace( array( ' ', '\\ufff0' ), array( '%20', 'ufff0' ), json_encode( $key ) );
+		return str_replace( array( ' ', '\\ufff0', '&' ), array( '%20', 'ufff0', '%26' ), json_encode( $key ) );
 	}
 
 	/**
