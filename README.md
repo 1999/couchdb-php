@@ -1,4 +1,4 @@
-First of all
+Introduction
 ============
 
 [CouchDB](http://couchdb.apache.org/) is amazing and easy-to-use NoSQL document-oriented database. Due to the origin of HTTP and the fact that CouchDB uses REST API, **the best way to interact with CouchDB is events-using webserver, such as [node.js](http://nodejs.org) with [Cradle](https://github.com/cloudhead/cradle)** module installed. Node.js can save the data between the requests of different users and that's why it doesn't need the cache layer.
