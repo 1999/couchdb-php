@@ -1,46 +1,55 @@
 <?php
 
-namespace Core;
-
 define( 'COUCHDB_DOMAIN', 'localhost' );
 define( 'COUCHDB_PORT', 5984 );
-//define( 'COUCHDB_USER', '' );
-//define( 'COUCHDB_PASS', '' );
+// uncomment these constants to use them in requests to CouchDB server
+//define( 'COUCHDB_USER', 'couchuser' );
+//define( 'COUCHDB_PASS', 'couchpassword' );
+
+define( 'MEMCACHED_HOST', 'localhost' );
+define( 'MEMCACHED_PORT', 11211 );
+define( 'MEMCACHED_KEYPREFIX', 'couchdb_' );
 
 /**
- * @property Memcache $__memcache
+ * @property Memcache $_memcache
  */
 class Couchdb {
 	private
 		$_baseUrl = null,
+		$_memcache = null,
 		$_meta = array();
 
 	public function  __construct() {
 		$this->_baseUrl = 'http://' . COUCHDB_DOMAIN . '/';
+		
+		$this->_memcache = new Memcache;
+		$this->_memcache->connect( MEMCACHED_HOST, MEMCACHED_PORT );
 	}
 
 	/**
-	 * generating unique identifier for new documents
+	 * get unique identifier for new document
 	 *
-	 * @return string 
+	 * @return string(40) new identifier
 	 */
 	public function uniqid() {
 		return sha1( uniqid() );
 	}
 	
 	/**
-	 * keys encoding
+	 * key encoding
+	 *
+	 * @return string encoded key
 	 */
 	public function encode( $key ) {
-		return str_replace( array( ' ', '\\ufff0', '&' ), array( '%20', 'ufff0', '%26' ), json_encode( $key ) );
+		return rawurlencode( json_encode( $key ) );
 	}
 
 	/**
 	 * getting data
 	 * 
 	 * @param string $dbName database name
-	 * @param string $uri URL without domain and database name (ex.: "_design/list/_view/by_name" or "documentid")
-	 * @return stdClass { status: [int] response code, data: [stdclass] decoded response body, etag: [string] etag }
+	 * @param string $uri URL without domain and database name (ex.: "_design/list/_view/by_name" or "documentId")
+	 * @return stdClass { status: [int] response code, data: [stdclass] decoded response body, meta: [string, optional] database current etag }
 	 */
 	public function get( $dbName, $uri ) {
 		$ch = $this->_createCurlHandler();
@@ -49,8 +58,8 @@ class Couchdb {
 			$this->_meta[ $dbName ] = $this->_dbMeta( $dbName );
 		}
 		
-		$cacheKey = 'couchdata:' . $dbName . ':' . $uri . ':' . $this->_meta[ $dbName ];
-		$cacheData = $this->__memcache->get( $cacheKey );
+		$cacheKey = $this->_encodeMemcacheKey( 'couchdata:' . $dbName . ':' . $uri . ':' . $this->_meta[ $dbName ] );
+		$cacheData = $this->_memcache->get( $cacheKey );
 		if ( false !== $cacheData ) {
 			return $cacheData;
 		}
@@ -63,21 +72,21 @@ class Couchdb {
 			exit( 'CouchDB server is asleep' );
 		}
 		
-		// can cache
-		if ( $status == '200' || $status == '404' ) {
-			$cacheData = new \StdClass;
+		// cache response
+		if ( $status == '200' ) {
+			$cacheData = new StdClass;
 			$cacheData->status = $status;
 			$cacheData->data = json_decode( $response );
-			$cacheData->etag = $this->_meta[ $dbName ];
+			$cacheData->meta = $this->_meta[ $dbName ];
 			
-			$this->__memcache->set( $cacheKey, $cacheData );
+			$this->_memcache->set( $cacheKey, $cacheData );
 			return $cacheData;
 		}
 		
-		// requests errors (400 Bad Request, 500 etc)
-		$output = new \StdClass;
+		// requests errors (404 Not Found, 500 etc)
+		$output = new StdClass;
 		$output->status = $status;
-		$output->data = $response;
+		$output->data = json_decode( $response );
 		return $output;
 	}
 
@@ -85,7 +94,7 @@ class Couchdb {
 	 * inserting new document
 	 *
 	 * @param string $dbName database name
-	 * @param array/stdclass $data document with existing "_id" property or index if array
+	 * @param array|stdclass $data document with existing "_id" property (index if array)
 	 * @return stdClass { status: [int] response code, data: [stdclass] response body }
 	 */
 	public function insert( $dbName, $data ) {
@@ -94,7 +103,7 @@ class Couchdb {
 
 		curl_setopt( $ch, CURLOPT_URL, $this->_baseUrl . $dbName );
 		curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'Content-type: application/json' ) );
-		curl_setopt( $ch, CURLOPT_POST, 1 );
+		curl_setopt( $ch, CURLOPT_POST, true );
 		curl_setopt( $ch, CURLOPT_POSTFIELDS, $data );
 		$returned = curl_exec( $ch );
 		$status = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
@@ -104,7 +113,7 @@ class Couchdb {
 			unset( $this->_meta[ $dbName ] );
 		}
 
-		$output = new \StdClass;
+		$output = new StdClass;
 		$output->status = $status;
 		$output->data = json_decode( $returned );
 		return $output;
@@ -115,7 +124,7 @@ class Couchdb {
 	 *
 	 * @param string $dbName database name
 	 * @param string $id document id
-	 * @param array/stdclass $data document with existing "_rev" property or index if array
+	 * @param array|stdclass $data document with existing "_rev" property (index if array)
 	 * @return stdClass { status: [int] response code, data: [stdclass] response body }
 	 */
 	public function update( $dbName, $id, $data ) {
@@ -152,7 +161,7 @@ class Couchdb {
 	 *
 	 * @param string $dbName database name
 	 * @param string $id document id
-	 * @param string @revision document "_rev" field
+	 * @param string $revision document "_rev" field
 	 * @return stdClass { status: [int] response code, data: [stdclass] response body }
 	 */
 	public function delete( $dbName, $id, $revision ) {
@@ -169,70 +178,69 @@ class Couchdb {
 			unset( $this->_meta[ $dbName ] );
 		}
 		
-		$output = new \StdClass;
+		$output = new StdClass;
 		$output->status = $status;
 		$output->data = json_decode( $returned );
 		return $output;
 	}
 	
-	############################################################################
-	############################################################################
+	
+	/* PRIVATE METHODS HERE */
 	
 	/**
-	 * getting meta info
+	 * encoding memcached cache key
+	 */
+	private function _encodeMemcacheKey( $cacheKey ) {
+		return md5( serialize( MEMCACHED_KEYPREFIX . $cacheKey ) );
+	}
+	
+	/**
+	 * getting database meta info
 	 */
 	private function _dbMeta( $dbName ) {
 		$ch = $this->_createCurlHandler();
-		$cacheKey = 'couchinfo:' . $dbName;
+		$cacheKey = $this->_encodeMemcacheKey( 'couchinfo:' . $dbName );
 		
 		curl_setopt( $ch, CURLOPT_URL, $this->_baseUrl . $dbName . '/_all_docs?limit=1' );
 		curl_setopt( $ch, CURLOPT_HEADER, true );
 		curl_setopt( $ch, CURLOPT_NOBODY, true );
 		
-		if ( false !== ( $cacheData = $this->__memcache->get( $cacheKey ) ) ) {
+		if ( false !== ( $cacheData = $this->_memcache->get( $cacheKey ) ) ) {
 			curl_setopt( $ch, CURLOPT_HTTPHEADER, array( 'If-None-Match: ' . $cacheData ) );
 		}
 		
 		$response = trim( curl_exec( $ch ) );
 		$status = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
 		
+		if ( $status == '0' ) {
+			exit( 'CouchDB server is asleep' );
+		}
+		
 		if ( $status == '404' ) {
 			exit( 'database does not exist: ' . $dbName );
 		}
 		
-		$headers = explode( chr( 10 ), $response );
-		foreach ( $headers as $header ) {
-			if ( substr( $header, 0, 5 ) == 'Etag:' ) {
-				$etag = substr( $header, 6, -1 );
-				if ( $cacheData != $etag ) {
-					$this->__memcache->set( $cacheKey, $etag );
-					return $etag;
-				}
-				
-				return $cacheData;
+		// empty database
+		if ( preg_match( '#Etag:\s"(.*?)"#m', $response, $matches ) == 0 ) {
+			if ( false !== $cacheData ) {
+				$this->_memcache->delete( $cacheKey, 0 );
 			}
+			
+			return '';
 		}
 		
-		// empty database
-		$this->__memcache->set( $cacheKey, '' );
-		return '';
-	}
-	
-	############################################################################
-	############################################################################
-
-	public function __get( $key ) {
-		if ( $key == '__memcache' ) {
-			$this->__memcache = new Memcache;
-			return $this->__memcache;
+		// database content has changed / first database request
+		if ( $cacheData != $matches[1] ) {
+			$this->_memcache->set( $cacheKey, $matches[1] );
+			return $matches[1];
 		}
-
-		return null;
+			
+		return $cacheData;
 	}
 	
-	############################################################################
-	############################################################################
-	
+	/**
+	 * create initial CURL request object
+	 */
 	private function _createCurlHandler() {
 		$ch = curl_init();
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
