@@ -221,7 +221,7 @@ class Couchdb {
 		}
 		
 		// empty database
-		if ( preg_match( '#Etag:\s"(.*?)"#m', $response, $matches ) == 0 ) {
+		if ( preg_match( '#etag:\s"(.*?)"#im', $response, $matches ) == 0 ) {
 			if ( false !== $cacheData ) {
 				$this->_memcache->delete( $cacheKey, 0 );
 			}
