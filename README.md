@@ -78,4 +78,4 @@ Create database "testing" in Futon and run example.php
 Package author
 ==============
 
-[Dmitry Sorin](http://www.staypositive.ru) @ [allcafe.ru](http://allcafe.ru)
+[Dmitry Sorin](http://www.staypositive.ru) for [allcafe.ru](http://allcafe.ru)
