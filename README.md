@@ -1,7 +1,7 @@
 Introduction
 ============
 
-[CouchDB](http://couchdb.apache.org/) is amazing and easy-to-use NoSQL document-oriented database. Due to the origin of HTTP and the fact that CouchDB uses REST API, **the best way to interact with CouchDB is events-using webserver, such as [node.js](http://nodejs.org) with [Cradle](https://github.com/cloudhead/cradle)** module installed. Node.js can save the data between the requests of different users and that's why it doesn't need the cache layer.
+[CouchDB](http://couchdb.apache.org/) is amazing and easy-to-use NoSQL document-oriented database. Due to the origin of HTTP and the fact that CouchDB uses REST API, **the best way to interact with CouchDB is events-using webserver, such as [node.js](http://nodejs.org) with [couchdb-memcached](https://npmjs.org/package/couchdb-memcached) or [Cradle](https://github.com/cloudhead/cradle)** module installed. Node.js can save the data between the requests of different users and that's why it doesn't need the cache layer.
 
 However CouchDB REST API allows everyone to interact with CouchDB. In case of php we do not have such an opportunity as node.js/Cradle can afford, so **Memcached server here is a cache layer between CouchDB and your php-written app**. CouchDB documents and views have ETags which uniquely represent the documents. If the document changes, its ETag changes too. So Memcached stores documents' ETags and lets us make few requests to CouchDB server if we have fetched the valid documents before the request.
 
